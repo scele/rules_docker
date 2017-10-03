@@ -43,8 +43,8 @@ def repositories():
   if "containerregistry" not in excludes:
     native.git_repository(
       name = "containerregistry",
-      remote = "https://github.com/google/containerregistry.git",
-      tag = CONTAINERREGISTRY_RELEASE,
+      remote = "https://github.com/scele/containerregistry.git",
+      commit = "3f83f01a427678e3b9fbba1b7548f3b3549f01a4",
     )
 
   # TODO(mattmoor): Remove all of this (copied from google/containerregistry)
