@@ -272,6 +272,8 @@ def _impl(ctx, files=None, file_map=None, empty_files=None, directory=None,
   shas = parent_parts.get("blobsum", []) + [blob_sum]
   unzipped_layers = parent_parts.get("unzipped_layer", []) + [unzipped_layer]
   diff_ids = parent_parts.get("diff_id", []) + [diff_id]
+  transient_files = parent_parts.get("transient_files", depset()) + [f for f in file_map]
+  transient_emptyfiles = parent_parts.get("transient_emptyfiles", depset()) + empty_files
 
   # These are the constituent parts of the Container image, which each
   # rule in the chain must preserve.
@@ -293,6 +295,10 @@ def _impl(ctx, files=None, file_map=None, empty_files=None, directory=None,
       # At the root of the chain, we support deriving from a tarball
       # base image.
       "legacy": parent_parts.get("legacy"),
+
+      # Keep track of all files that we have already added to the image layers.
+      "transient_files": transient_files,
+      "transient_emptyfiles": transient_emptyfiles,
   }
 
   # We support incrementally loading or assembling this single image
