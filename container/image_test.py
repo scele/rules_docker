@@ -342,6 +342,89 @@ class ImageTest(unittest.TestCase):
         '/app/testdata/py_image.binary.runfiles/io_bazel_rules_docker/testdata/__init__.py',
       ])
 
+  def test_py_image_complex(self):
+    with TestImage('py_image_complex') as img:
+      # Check the application layer, which is on top.
+      self.assertTopLayerContains(img, [
+        '.',
+        './app',
+        './app/testdata',
+        './app/testdata/py_image_complex.binary.runfiles',
+        './app/testdata/py_image_complex.binary.runfiles/io_bazel_rules_docker',
+        './app/testdata/py_image_complex.binary.runfiles/io_bazel_rules_docker/testdata',
+        './app/testdata/py_image_complex.binary.runfiles/io_bazel_rules_docker/testdata/py_image_complex.py',
+        './app/testdata/py_image_complex.binary.runfiles/io_bazel_rules_docker/testdata/py_image_complex.binary',
+        '/app',
+        '/app/testdata',
+        '/app/testdata/py_image_complex.binary',
+        '/app/testdata/py_image_complex.binary.runfiles',
+        '/app/testdata/py_image_complex.binary.runfiles/io_bazel_rules_docker',
+        '/app/testdata/py_image_complex.binary.runfiles/io_bazel_rules_docker/external',
+      ])
+
+      # Check the high library layer, which is one below our application layer.
+      self.assertLayerNContains(img, 1, [
+        '.',
+        './app',
+        './app/io_bazel_rules_docker',
+        './app/io_bazel_rules_docker/testdata',
+        './app/io_bazel_rules_docker/testdata/py_image_library_2.py',
+        '/app',
+        '/app/testdata',
+        '/app/testdata/py_image_complex.binary.runfiles',
+        '/app/testdata/py_image_complex.binary.runfiles/io_bazel_rules_docker',
+        '/app/testdata/py_image_complex.binary.runfiles/io_bazel_rules_docker/testdata',
+        '/app/testdata/py_image_complex.binary.runfiles/io_bazel_rules_docker/testdata/py_image_library_2.py',
+      ])
+
+      # Check the low library layer, which is two below our application layer.
+      self.assertLayerNContains(img, 2, [
+        '.',
+        './app',
+        './app/io_bazel_rules_docker',
+        './app/io_bazel_rules_docker/testdata',
+        './app/io_bazel_rules_docker/testdata/py_image_library_with_external_deps.py',
+        './app/io_bazel_rules_docker/testdata/__init__.py',
+        '/app',
+        '/app/testdata',
+        '/app/testdata/py_image_complex.binary.runfiles',
+        '/app/testdata/py_image_complex.binary.runfiles/io_bazel_rules_docker',
+        '/app/testdata/py_image_complex.binary.runfiles/io_bazel_rules_docker/testdata',
+        '/app/testdata/py_image_complex.binary.runfiles/io_bazel_rules_docker/testdata/py_image_library_with_external_deps.py',
+        '/app/testdata/py_image_complex.binary.runfiles/io_bazel_rules_docker/testdata/__init__.py',
+      ])
+
+      # Check the external layer, which is three below our application layer.
+      self.assertLayerNContains(img, 3, [
+        '.',
+        './app',
+        './app/pypi__six_1_11_0',
+        './app/pypi__six_1_11_0/six.py',
+        './app/pypi__six_1_11_0/six-1.11.0.dist-info',
+        './app/pypi__six_1_11_0/six-1.11.0.dist-info/DESCRIPTION.rst',
+        './app/pypi__six_1_11_0/six-1.11.0.dist-info/METADATA',
+        './app/pypi__six_1_11_0/six-1.11.0.dist-info/RECORD',
+        './app/pypi__six_1_11_0/six-1.11.0.dist-info/WHEEL',
+        './app/pypi__six_1_11_0/six-1.11.0.dist-info/metadata.json',
+        './app/pypi__six_1_11_0/six-1.11.0.dist-info/top_level.txt',
+        './app/pypi__six_1_11_0/__init__.py',
+        './app/__init__.py',
+        '/app',
+        '/app/testdata',
+        '/app/testdata/py_image_complex.binary.runfiles',
+        '/app/testdata/py_image_complex.binary.runfiles/pypi__six_1_11_0',
+        '/app/testdata/py_image_complex.binary.runfiles/pypi__six_1_11_0/six.py',
+        '/app/testdata/py_image_complex.binary.runfiles/pypi__six_1_11_0/six-1.11.0.dist-info',
+        '/app/testdata/py_image_complex.binary.runfiles/pypi__six_1_11_0/six-1.11.0.dist-info/DESCRIPTION.rst',
+        '/app/testdata/py_image_complex.binary.runfiles/pypi__six_1_11_0/six-1.11.0.dist-info/METADATA',
+        '/app/testdata/py_image_complex.binary.runfiles/pypi__six_1_11_0/six-1.11.0.dist-info/RECORD',
+        '/app/testdata/py_image_complex.binary.runfiles/pypi__six_1_11_0/six-1.11.0.dist-info/WHEEL',
+        '/app/testdata/py_image_complex.binary.runfiles/pypi__six_1_11_0/six-1.11.0.dist-info/metadata.json',
+        '/app/testdata/py_image_complex.binary.runfiles/pypi__six_1_11_0/six-1.11.0.dist-info/top_level.txt',
+        '/app/testdata/py_image_complex.binary.runfiles/pypi__six_1_11_0/__init__.py',
+        '/app/testdata/py_image_complex.binary.runfiles/__init__.py',
+      ])
+
   def test_cc_image(self):
     with TestImage('cc_image') as img:
       # Check the application layer, which is on top.
