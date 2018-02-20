@@ -39,9 +39,8 @@ def repositories():
   if "puller" not in excludes:
     native.http_file(
       name = "puller",
-      url = ("https://storage.googleapis.com/containerregistry-releases/" +
-             CONTAINERREGISTRY_RELEASE + "/puller.par"),
-      sha256 = "42309ba47bb28d1e1b81ef72789dcca396095e191d4f0e49e2e23c297edd27fb",
+      url = "https://github.com/scele/containerregistry/releases/download/v0.0.26-print-progress/puller.par",
+      sha256 = "2b4778a3f855729c126cc3c86d9ab44bbef28fda68f3344060c5bfcc78d0734e",
       executable = True,
     )
 
