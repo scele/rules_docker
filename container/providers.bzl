@@ -14,7 +14,10 @@
 """Provider definitions"""
 
 # A provider containing information exposed by container_bundle rules
-BundleInfo = provider(fields = ["container_images", "stamp"])
+BundleInfo = provider(fields = [
+    "container_images",
+    "stamp",
+])
 
 # A provider containing information exposed by container_flatten rules
 FlattenInfo = provider()
