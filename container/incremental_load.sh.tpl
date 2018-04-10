@@ -19,9 +19,12 @@ set -eu
 # This is a generated file that loads all docker layers built by "docker_build".
 
 function guess_runfiles() {
-    pushd ${BASH_SOURCE[0]}.runfiles > /dev/null 2>&1
-    pwd
-    popd > /dev/null 2>&1
+    if [ -d ${BASH_SOURCE[0]}.runfiles ]; then
+        echo "$( cd ${BASH_SOURCE[0]}.runfiles && pwd )"
+    else
+        mydir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+        echo $mydir | sed -e 's|\(.*\.runfiles\)/.*|\1|'
+    fi
 }
 
 RUNFILES="${PYTHON_RUNFILES:-$(guess_runfiles)}"
