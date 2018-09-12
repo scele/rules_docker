@@ -73,20 +73,21 @@ def py_image(name, base=None, deps=[], layers=[], external_layer=False, **kwargs
   native.py_binary(name=binary_name, deps=deps + layers, **kwargs)
 
   base = base or DEFAULT_BASE
+  tags = kwargs.get('tags', None)
 
   # Add a separate layer for external deps, usually they don't change very often.
   if external_layer:
     external_layer_name = "%s.external" % name
-    dep_layer(name=external_layer_name, base=base, dep=binary_name, only_external=True, binary=binary_name)
+    dep_layer(name=external_layer_name, base=base, dep=binary_name, only_external=True, binary=binary_name, tags=tags)
     base = external_layer_name
 
   # TODO(mattmoor): Consider making the directory into which the app
   # is placed configurable.
   for index, dep in enumerate(layers):
     this_name = "%s.%d" % (name, index)
-    dep_layer(name=this_name, base=base, dep=dep, binary=binary_name)
+    dep_layer(name=this_name, base=base, dep=dep, binary=binary_name, tags=tags)
     base = this_name
 
   visibility = kwargs.get('visibility', None)
   app_layer(name=name, base=base, entrypoint=['/usr/bin/python'],
-            binary=binary_name, visibility=visibility)
+            binary=binary_name, visibility=visibility, tags=tags)

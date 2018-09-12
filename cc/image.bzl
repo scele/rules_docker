@@ -70,6 +70,8 @@ def cc_image(name, base=None, deps=[], layers=[], binary=None, **kwargs):
   if layers:
     print("cc_image does not benefit from layers=[], got: %s" % layers)
 
+  tags = kwargs.get('tags', None)
+
   if not binary:
     binary = name + ".binary"
     native.cc_binary(name=binary, deps=deps + layers, **kwargs)
@@ -79,9 +81,9 @@ def cc_image(name, base=None, deps=[], layers=[], binary=None, **kwargs):
   base = base or DEFAULT_BASE
   for index, dep in enumerate(layers):
     this_name = "%s.%d" % (name, index)
-    dep_layer(name=this_name, base=base, dep=dep)
+    dep_layer(name=this_name, base=base, dep=dep, tags=tags)
     base = this_name
 
   visibility = kwargs.get('visibility', None)
   app_layer(name=name, base=base, binary=binary,
-            visibility=visibility)
+            visibility=visibility, tags=tags)
