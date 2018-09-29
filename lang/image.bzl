@@ -242,7 +242,7 @@ _app_layer = rule(
     implementation = app_layer_impl,
 )
 
-# Convenience function that instantiates tha _app_layer rule and returns
+# Convenience function that instantiates the _app_layer rule and returns
 # the name (useful when chaining layers).
 def app_layer(name, **kwargs):
     _app_layer(name = name, **kwargs)
