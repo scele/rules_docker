@@ -22,19 +22,7 @@ load(
     "//container:layer_tools.bzl",
     _get_layers = "get_from_target",
 )
-
-FilterAspectInfo = provider(
-    fields = {
-        "depset": "a depset of struct(target=<target>, target_deps=<depset>)",
-    },
-)
-
-FilterLayer = provider(
-    fields = {
-        "runfiles": "filtered runfiles that should be installed from this layer",
-        "filtered_depset": "a filtered depset of struct(target=<target>, target_deps=<depset>)",
-    },
-)
+load("//container:providers.bzl", "FilterAspectInfo", "FilterLayerInfo")
 
 def _binary_name(ctx):
     # For //foo/bar/baz:blah this would translate to
@@ -116,14 +104,14 @@ def layer_file_path(ctx, f):
     return "/".join([ctx.attr.directory, ctx.workspace_name, f.short_path])
 
 def _default_runfiles(dep):
-    if FilterLayer in dep:
-        return dep[FilterLayer].runfiles.files
+    if FilterLayerInfo in dep:
+        return dep[FilterLayerInfo].runfiles.files
     else:
         return dep.default_runfiles.files
 
 def _default_emptyfiles(dep):
-    if FilterLayer in dep:
-        return dep[FilterLayer].runfiles.empty_filenames
+    if FilterLayerInfo in dep:
+        return dep[FilterLayerInfo].runfiles.empty_filenames
     else:
         return dep.default_runfiles.empty_filenames
 
@@ -249,10 +237,10 @@ def app_layer(name, **kwargs):
     return name
 
 def _filter_aspect_impl(target, ctx):
-    if FilterLayer in target:
+    if FilterLayerInfo in target:
         # If the aspect propagated along the "deps" attr to another filter layer,
         # then take the filtered depset instead of descending further.
-        return [FilterAspectInfo(depset = target[FilterLayer].filtered_depset)]
+        return [FilterAspectInfo(depset = target[FilterLayerInfo].filtered_depset)]
 
     # Collect transitive deps from all children (propagating along "deps" attr).
     target_deps = depset(transitive = [dep[FilterAspectInfo].depset for dep in ctx.rule.attr.deps])
@@ -280,7 +268,7 @@ def _filter_layer_rule_impl(ctx):
             filtered_depsets.append(dep.target_deps)
     return struct(
         providers = [
-            FilterLayer(
+            FilterLayerInfo(
                 runfiles = runfiles,
                 filtered_depset = depset(transitive = filtered_depsets),
             ),

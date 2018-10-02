@@ -49,3 +49,18 @@ PushInfo = provider(fields = [
     "stamp",
     "stamp_inputs",
 ])
+
+# A provider containing information exposed by filter_layer rules
+FilterLayerInfo = provider(
+    fields = {
+        "runfiles": "filtered runfiles that should be installed from this layer",
+        "filtered_depset": "a filtered depset of struct(target=<target>, target_deps=<depset>)",
+    },
+)
+
+# A provider containing information exposed by filter_aspect
+FilterAspectInfo = provider(
+    fields = {
+        "depset": "a depset of struct(target=<target>, target_deps=<depset>)",
+    },
+)
