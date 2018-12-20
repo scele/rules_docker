@@ -216,6 +216,29 @@ container_test(
     image = ":set_env_csv",
 )
 
+genrule(
+    name = "special_characters_file",
+    outs = ["gen= foo.out"],
+    cmd = "echo generated > \"$@\"",
+)
+
+container_image(
+    name = "special_characters",
+    base = "@distroless_fixed_id//image",
+    files = [":special_characters_file"],
+    empty_files = ["/empty= file"],
+    empty_dirs = ["/empty= dir"],
+    symlinks = {"foo= symlink": "root= dir/gen= foo.out"},
+    directory = "root= dir",
+)
+
+container_test(
+    name = "special_characters_test",
+    configs = ["//tests/docker/configs:special_characters.yaml"],
+    image = ":special_characters",
+    driver = "tar",
+)
+
 container_push(
     name = "push_test",
     format = "Docker",
