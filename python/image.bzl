@@ -18,8 +18,9 @@ The signature of this rule is compatible with py_binary.
 
 load(
     "//lang:image.bzl",
-    "app_layer",
     "filter_layer",
+    "lang_image",
+    "lang_layer",
 )
 load(
     "//container:container.bzl",
@@ -83,15 +84,19 @@ def py_image(name, base = None, deps = [], layers = [], **kwargs):
     # TODO(mattmoor): Consider making the directory into which the app
     # is placed configurable.
     base = base or DEFAULT_BASE
+    _layers = []
     for index, dep in enumerate(layers):
-        base = app_layer(name = "%s.%d" % (name, index), base = base, dep = dep)
-        base = app_layer(name = "%s.%d-symlinks" % (name, index), base = base, dep = dep, binary = binary_name)
+        base = lang_layer(name = "%s.%d" % (name, index), base = base, dep = dep)
+        _layers += [base]
+        base = lang_layer(name = "%s.%d-symlinks" % (name, index), base = base, dep = dep, binary = binary_name)
+        _layers += [base]
 
     visibility = kwargs.get("visibility", None)
     tags = kwargs.get("tags", None)
-    app_layer(
+    lang_image(
         name = name,
         base = base,
+        layers = _layers,
         entrypoint = ["/usr/bin/python"],
         binary = binary_name,
         visibility = visibility,

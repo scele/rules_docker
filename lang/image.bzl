@@ -19,6 +19,10 @@ load(
     _container = "container",
 )
 load(
+    "//container:layer.bzl",
+    _layer = "layer",
+)
+load(
     "//container:layer_tools.bzl",
     _get_layers = "get_from_target",
 )
@@ -115,18 +119,19 @@ def _default_emptyfiles(dep):
     else:
         return dep.default_runfiles.empty_filenames
 
-def app_layer_impl(ctx, runfiles = None, emptyfiles = None):
-    """Appends a layer for a single dependency's runfiles."""
+def _default_symlinks(dep):
+    if FilterLayerInfo in dep:
+        return dep[FilterLayerInfo].runfiles.symlinks
+    else:
+        return dep.default_runfiles.symlinks
 
+def _collect_runfiles(ctx, dep, runfiles = None, emptyfiles = None):
     runfiles = runfiles or _default_runfiles
     emptyfiles = emptyfiles or _default_emptyfiles
-    workdir = None
 
     parent_parts = _get_layers(ctx, ctx.attr.name, ctx.attr.base)
     filepath = _final_file_path if ctx.attr.binary else layer_file_path
     emptyfilepath = _final_emptyfile_path if ctx.attr.binary else _layer_emptyfile_path
-    dep = ctx.attr.dep or ctx.attr.binary
-    top_layer = ctx.attr.binary and not ctx.attr.dep
 
     # Compute the set of runfiles that have been made available
     # in our base image, tracking absolute paths.
@@ -166,18 +171,58 @@ def app_layer_impl(ctx, runfiles = None, emptyfiles = None):
             if _final_emptyfile_path(ctx, f) not in empty_files and _final_emptyfile_path(ctx, f) not in available
         })
 
-    entrypoint = None
-    if top_layer:
-        entrypoint = ctx.attr.entrypoint + [_binary_name(ctx)]
-        workdir = ctx.attr.workdir or "/".join([_runfiles_dir(ctx), ctx.workspace_name])
-        symlinks.update({
-            # Create a symlink from our entrypoint to where it will actually be put
-            # under runfiles.
-            _binary_name(ctx): _final_file_path(ctx, ctx.executable.binary),
-            # Create a directory symlink from <workspace>/external to the runfiles
-            # root, since they may be accessed via either path.
-            _external_dir(ctx): _runfiles_dir(ctx),
-        })
+    return file_map, empty_files, symlinks
+
+def _lang_layer_impl(ctx, runfiles = None, emptyfiles = None):
+    """Appends a layer for a single dependency's runfiles."""
+    file_map, empty_files, symlinks = _collect_runfiles(ctx, ctx.attr.dep, runfiles, emptyfiles)
+    return _layer.implementation(
+        ctx,
+        # We use all absolute paths.
+        directory = "/",
+        file_map = file_map,
+        empty_files = empty_files,
+        symlinks = symlinks,
+    )
+
+_lang_layer = rule(
+    attrs = dict(_layer.attrs.items() + {
+        # The binary target for which we are synthesizing an image.
+        # If specified, the layer will not be "image agnostic", meaning
+        # that the runfiles required by "dep" will be created (or symlinked,
+        # if already found in an agnostic path from the base image) under
+        # the runfiles dir.
+        "binary": attr.label(
+            executable = True,
+            cfg = "target",
+        ),
+        # The dependency whose runfiles we're appending.
+        # If not specified, then the layer will be treated as the top layer,
+        # and all remaining deps of "binary" will be added under runfiles.
+        "dep": attr.label(providers = [DefaultInfo]),
+
+        # The base image on which to overlay the dependency layers.
+        "base": attr.label(mandatory = True),
+    }.items()),
+    outputs = _layer.outputs,
+    toolchains = ["@io_bazel_rules_docker//toolchains/docker:toolchain_type"],
+    implementation = _lang_layer_impl,
+)
+
+def _lang_image_impl(ctx, runfiles = None, emptyfiles = None):
+    """Appends a layer for a single dependency's runfiles."""
+    file_map, empty_files, symlinks = _collect_runfiles(ctx, ctx.attr.binary, runfiles, emptyfiles)
+
+    entrypoint = ctx.attr.entrypoint + [_binary_name(ctx)]
+    workdir = ctx.attr.workdir or "/".join([_runfiles_dir(ctx), ctx.workspace_name])
+    symlinks.update({
+        # Create a symlink from our entrypoint to where it will actually be put
+        # under runfiles.
+        _binary_name(ctx): _final_file_path(ctx, ctx.executable.binary),
+        # Create a directory symlink from <workspace>/external to the runfiles
+        # root, since they may be accessed via either path.
+        _external_dir(ctx): _runfiles_dir(ctx),
+    })
 
     # args of the form $(location :some_target) are expanded to the path of the underlying file
     args = [ctx.expand_location(arg, ctx.attr.data) for arg in ctx.attr.args]
@@ -201,21 +246,14 @@ def app_layer_impl(ctx, runfiles = None, emptyfiles = None):
         null_cmd = args == [],
     )
 
-_app_layer = rule(
+
+lang_image = rule(
     attrs = dict(_container.image.attrs.items() + {
         # The binary target for which we are synthesizing an image.
-        # If specified, the layer will not be "image agnostic", meaning
-        # that the runfiles required by "dep" will be created (or symlinked,
-        # if already found in an agnostic path from the base image) under
-        # the runfiles dir.
         "binary": attr.label(
             executable = True,
             cfg = "target",
         ),
-        # The dependency whose runfiles we're appending.
-        # If not specified, then the layer will be treated as the top layer,
-        # and all remaining deps of "binary" will be added under runfiles.
-        "dep": attr.label(providers = [DefaultInfo]),
 
         # The base image on which to overlay the dependency layers.
         "base": attr.label(mandatory = True),
@@ -231,13 +269,13 @@ _app_layer = rule(
     executable = True,
     outputs = _container.image.outputs,
     toolchains = ["@io_bazel_rules_docker//toolchains/docker:toolchain_type"],
-    implementation = app_layer_impl,
+    implementation = _lang_image_impl,
 )
 
 # Convenience function that instantiates the _app_layer rule and returns
 # the name (useful when chaining layers).
-def app_layer(name, **kwargs):
-    _app_layer(name = name, **kwargs)
+def lang_layer(name, **kwargs):
+    _lang_layer(name = name, **kwargs)
     return name
 
 def _filter_aspect_impl(target, ctx):
